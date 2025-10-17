@@ -63,6 +63,15 @@ def _get_fb_access_token() -> str:
 
     return FB_ACCESS_TOKEN
 
+def _sanitize_params_for_logging(params: Dict[str, Any]) -> Dict[str, Any]:
+    """Sanitize parameters by redacting sensitive information like access tokens."""
+    if not params:
+        return params
+    sanitized = params.copy()
+    if 'access_token' in sanitized:
+        sanitized['access_token'] = '***REDACTED***'
+    return sanitized
+
 def _make_graph_api_call(url: str, params: Dict[str, Any]) -> Dict:
     """Makes a GET request to the Facebook Graph API and handles the response."""
     try:
@@ -71,7 +80,9 @@ def _make_graph_api_call(url: str, params: Dict[str, Any]) -> Dict:
         return response.json()
     except requests.exceptions.RequestException as e:
         # Log the error and re-raise or handle more gracefully
-        print(f"Error making Graph API call to {url} with params {params}: {e}")
+        # Sanitize params to avoid logging sensitive access tokens
+        safe_params = _sanitize_params_for_logging(params)
+        print(f"Error making Graph API call to {url} with params {safe_params}: {e}")
         # Depending on desired behavior, you might want to raise a custom exception
         # or return a specific error structure. Re-raising keeps the current behavior.
         raise
