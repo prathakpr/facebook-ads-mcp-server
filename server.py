@@ -5,6 +5,8 @@ from typing import Dict, List, Optional, Any
 import json
 import requests
 import sys
+import os
+import argparse
 
     
 
@@ -18,7 +20,9 @@ DEFAULT_AD_ACCOUNT_FIELDS = [
     'created_time', 'id'
 ]
 
-# Create an MCP server
+# MCP server instance will be created after parsing args
+# For now, create with defaults that can be overridden via environment variables
+# FASTMCP_HOST and FASTMCP_PORT
 mcp = FastMCP("fb-api-mcp-server")
 
 # Add a global variable to store the token
@@ -28,14 +32,17 @@ FB_ACCESS_TOKEN = None
 
 def _get_fb_access_token() -> str:
     """
-    Get Facebook access token from command line arguments.
+    Get Facebook access token from multiple sources in order of priority:
+    1. Command line arguments (--fb-token)
+    2. Environment variable (FB_ACCESS_TOKEN)
+    
     Caches the token in memory after first read.
 
     Returns:
         str: The Facebook access token.
 
     Raises:
-        Exception: If no token is provided in command line arguments.
+        Exception: If no token is provided.
     """
     global FB_ACCESS_TOKEN
     if FB_ACCESS_TOKEN is None:
@@ -47,8 +54,12 @@ def _get_fb_access_token() -> str:
                 print(f"Using Facebook token from command line arguments")
             else:
                 raise Exception("--fb-token argument provided but no token value followed it")
+        # Check environment variable
+        elif os.getenv("FB_ACCESS_TOKEN"):
+            FB_ACCESS_TOKEN = os.getenv("FB_ACCESS_TOKEN")
+            print(f"Using Facebook token from environment variable")
         else:
-            raise Exception("Facebook token must be provided via '--fb-token' command line argument")
+            raise Exception("Facebook token must be provided via '--fb-token' command line argument or FB_ACCESS_TOKEN environment variable")
 
     return FB_ACCESS_TOKEN
 
@@ -2292,6 +2303,30 @@ def get_activities_by_adset(
 
 
 if __name__ == "__main__":
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Facebook Ads MCP Server')
+    parser.add_argument('--fb-token', help='Facebook access token', required=False)
+    parser.add_argument('--transport', choices=['stdio', 'sse'], default='stdio',
+                        help='Transport mode: stdio for local (default) or sse for HTTP')
+    parser.add_argument('--host', default='0.0.0.0', help='Host to bind to (for SSE mode)')
+    parser.add_argument('--port', type=int, default=8000, help='Port to listen on (for SSE mode)')
+    
+    args, unknown = parser.parse_known_args()
+    
+    # Validate token is available
     _get_fb_access_token()
-    mcp.run(transport='stdio')
+    
+    # Set host and port via environment variables that FastMCP reads
+    # This allows the settings to be picked up by the FastMCP server
+    if args.transport == 'sse':
+        os.environ['FASTMCP_HOST'] = args.host
+        os.environ['FASTMCP_PORT'] = str(args.port)
+    
+    # Run with appropriate transport
+    if args.transport == 'sse':
+        print(f"Starting Facebook Ads MCP Server in HTTP mode on {args.host}:{args.port}")
+        mcp.run(transport='sse')
+    else:
+        print(f"Starting Facebook Ads MCP Server in stdio mode")
+        mcp.run(transport='stdio')
     

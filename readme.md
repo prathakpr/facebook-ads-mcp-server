@@ -39,12 +39,18 @@ GoMarble **does not store** your token — it is saved locally on your machine f
 
 ## Setup
 
-### Prerequisites
+The server supports two modes:
+- **Local Setup (stdio)**: Run the server directly on your machine
+- **HTTP Deployment (sse)**: Deploy the server and access it via HTTP URL
+
+### Local Setup
+
+#### Prerequisites
 
 *   Python 3.10+
 *   Dependencies listed in `requirements.txt`
 
-
+#### Installation Steps
 
 1.  **(Optional but Recommended) Create and Activate a Virtual Environment:**
     ```bash
@@ -87,6 +93,72 @@ To integrate this server with an MCP-compatible client, add a configuration([Cla
 Restart the MCP Client app after making the update in the configuration.
 
 *(Note: On Windows, you might need to adjust the command structure or use `cmd /k` depending on your setup.)*
+
+---
+
+## HTTP Deployment 🚀
+
+Deploy the MCP server as an HTTP service for remote access. This allows multiple users to connect to a single server instance without running the server locally.
+
+### Quick Start with Docker
+
+1. **Build and run with Docker:**
+   ```bash
+   docker build -t fb-ads-mcp-server .
+   docker run -d -p 8000:8000 -e FB_ACCESS_TOKEN="YOUR_TOKEN" fb-ads-mcp-server
+   ```
+
+2. **Or use Docker Compose:**
+   ```bash
+   # Set your token in docker-compose.yml or use environment variable
+   export FB_ACCESS_TOKEN="YOUR_TOKEN"
+   docker-compose up -d
+   ```
+
+### Client Configuration for HTTP Mode
+
+When using the deployed server, update your MCP client config:
+
+**Claude Desktop / Cursor Config:**
+```json
+{
+  "mcpServers": {
+    "fb-ads-mcp-server": {
+      "url": "http://localhost:8000/sse"
+    }
+  }
+}
+```
+
+**For remote deployment:**
+```json
+{
+  "mcpServers": {
+    "fb-ads-mcp-server": {
+      "url": "https://your-deployed-server.com/sse"
+    }
+  }
+}
+```
+
+### Key Benefits of HTTP Deployment
+
+✅ **Centralized**: One server instance for multiple users  
+✅ **Secure**: Token stored on server, not in client configs  
+✅ **Easy Updates**: Update server once, all clients benefit  
+✅ **Cloud Ready**: Deploy to Heroku, AWS, GCP, Azure, etc.
+
+### Deployment Options
+
+- **Docker** (Recommended) - See [DEPLOYMENT.md](DEPLOYMENT.md)
+- **Heroku** - One-click deploy with buildpack
+- **Railway/Render** - Auto-detect Dockerfile
+- **AWS/GCP/Azure** - Container services
+
+📖 **Full deployment guide:** [DEPLOYMENT.md](DEPLOYMENT.md)  
+📖 **Configuration examples:** [config-examples.md](config-examples.md)
+
+---
 
 ### Debugging the Server
 

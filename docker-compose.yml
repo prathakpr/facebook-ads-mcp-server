@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  fb-ads-mcp-server:
+    build: .
+    container_name: fb-ads-mcp-server
+    ports:
+      - "8000:8000"
+    environment:
+      # Set your Facebook Access Token here
+      - FB_ACCESS_TOKEN=${FB_ACCESS_TOKEN}
+    restart: unless-stopped
+    # Uncomment the following line to use a .env file
+    # env_file:
+    #   - .env
+
